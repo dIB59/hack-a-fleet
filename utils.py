@@ -152,6 +152,10 @@ def get_trips_from_vessel_data(
     # Transform vessel data to a Dataframe
     df = transform_vessel_data_to_dataframe(vessel_data)
 
+    # Return empty list if the DataFrame is missing the required columns
+    if lat not in df.columns or lon not in df.columns or sog not in df.columns:
+        return []
+
     # Drop data points where latitude, longitude, or speed over ground is NaN
     df = df.dropna(subset=[lat, lon, sog])
 
@@ -172,6 +176,10 @@ def get_trips_from_vessel_data(
             orient="list"
         )
         trips.append({"path": path, **attributes})
+
+    # Remove trips with less than 2 points
+    trips = [trip for trip in trips if len(trip["path"]) > 1]
+
     return trips
 
 
