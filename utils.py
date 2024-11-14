@@ -1,9 +1,11 @@
+import os
+import math
 import pandas as pd
+import numpy as np
 import requests
 from datetime import datetime
 
 from dotenv import load_dotenv
-import os
 
 # Load environment variables from .env file
 load_dotenv()
@@ -126,6 +128,7 @@ def get_trips_from_vessel_data(
     lat="positioningsystem_latitude_deg_1",
     lon="positioningsystem_longitude_deg_1",
     sog="positioningsystem_sog_kn_1",
+    time_zone="CET",
 ):
     """
     Processes vessel data to extract trips based on speed and stop time thresholds.
@@ -137,6 +140,7 @@ def get_trips_from_vessel_data(
         lat (str, optional): The key for latitude in the vessel data. Defaults to "positioningsystem_latitude_deg_1".
         lon (str, optional): The key for longitude in the vessel data. Defaults to "positioningsystem_longitude_deg_1".
         sog (str, optional): The key for speed over ground in the vessel data. Defaults to "positioningsystem_sog_kn_1".
+        time_zone (str, optional): The time zone to which the 'time' column should be converted. Defaults to 'CET'.
 
     Returns:
         list: A list of dictionaries, each representing a trip. Each dictionary contains:
@@ -157,8 +161,8 @@ def get_trips_from_vessel_data(
     # Add column with time between messages (dt)
     df["dt"] = df["time"].diff().dt.total_seconds()
 
-    # Transform time to ISO8601 format strings
-    df["time"] = df["time"].dt.strftime("%Y-%m-%dT%H:%M:%S")
+    # Transform time to timezone and ISO8601 format strings
+    df["time"] = df["time"].dt.tz_convert(time_zone).dt.strftime("%Y-%m-%dT%H:%M:%S")
 
     # Split data into trips at time gaps ( dt > stop_time_threshold_min)
     trips = []
@@ -182,6 +186,8 @@ def haversine(point_1, point_2):
     Returns:
         float: The great-circle distance between the two points in meters
     """
+
+    R = 6371000  # Earth's radius in meters
 
     lat1, lon1 = point_1
     lat2, lon2 = point_2
