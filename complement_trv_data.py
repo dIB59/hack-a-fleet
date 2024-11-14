@@ -3,51 +3,56 @@ import pandas as pd
 import numpy as np
 from tqdm.notebook import tqdm
 
-from visualisation import *
-from utils import *
+from utils import fetch_vessel_data, get_trips_from_vessel_data, haversine
 
+# Load additional ferries data
 with open("ferries.json", "r") as file:
-    ferries = json.load(file)
-print(ferries)
+    ferries_data = json.load(file)
+print(ferries_data)
 
 # Path to Excel file provided by Färjerederiet
 file_path = "./ferry_trips_hackaton.xlsx"
 
 # Load the Excel file into a Dataframe
-trv_data = pd.read_excel(file_path)
+ferry_trip_data = pd.read_excel(file_path)
 
-# Add extra columns to the trv_data DataFrame
-trv_data["fuelcons_outbound_l"] = None
-trv_data["distance_outbound_nm"] = None
-trv_data["start_time_outbound"] = None
-trv_data["end_time_outbound"] = None
+# Get list of all ferries
+ferries = list(ferry_trip_data["ferry_name"].unique())
 
-trv_data["fuelcons_inbound_l"] = None
-trv_data["distance_inbound_nm"] = None
-trv_data["start_time_inbound"] = None
-trv_data["end_time_inbound"] = None
+# Add extra columns to the ferry_trip_data DataFrame
+ferry_trip_data["fuelcons_outbound_l"] = None
+ferry_trip_data["distance_outbound_nm"] = None
+ferry_trip_data["start_time_outbound"] = None
+ferry_trip_data["end_time_outbound"] = None
+
+ferry_trip_data["fuelcons_inbound_l"] = None
+ferry_trip_data["distance_inbound_nm"] = None
+ferry_trip_data["start_time_inbound"] = None
+ferry_trip_data["end_time_inbound"] = None
+
 
 # Time bucket
 time_bucket = "30 seconds"  # Used to fetch data from PONTOS-HUB
 time_bucket_s = 30  # Used to calculate fuel consumption
 
 # Loop through all the ferries
-for ferry in ferries.keys():
+for ferry in ferries:
 
     print(f"Ferry: {ferry}")
 
     # Get a list of all the days in the time_departure column for the ferry
-    days = trv_data[trv_data["ferry_name"].str.lower() == ferry][
+    days = ferry_trip_data[ferry_trip_data["ferry_name"].str.lower() == ferry][
         "time_departure"
     ].dt.date.unique()
 
+    days = [days[150]]
     # Loop through all the days with a progress bar
     for day in tqdm(days, desc="Processing days"):
 
         # Get departure times for the day
-        departure_times = trv_data[
-            (trv_data["ferry_name"].str.lower() == ferry)
-            & (trv_data["time_departure"].dt.date == day)
+        departure_times = ferry_trip_data[
+            (ferry_trip_data["ferry_name"].str.lower() == ferry)
+            & (ferry_trip_data["time_departure"].dt.date == day)
         ]["time_departure"]
 
         # Check if day is after PONTOS-HUB launch date
@@ -58,7 +63,7 @@ for ferry in ferries.keys():
         start_of_day = pd.Timestamp(day)
         end_of_day = start_of_day + pd.Timedelta("1 day")
         vessel_data = fetch_vessel_data(
-            ferries[ferry]["pontos_id"],
+            ferries_data[ferry]["pontos_vessel_id"],
             str(start_of_day),
             str(end_of_day),
             time_bucket=time_bucket,
@@ -168,3 +173,19 @@ for ferry in ferries.keys():
                                 for fuelcons_lph in inbound_trip[key]
                             ]
                         )
+
+            # Update ferry_trip_data DataFrame for the matching row
+            row_mask = (ferry_trip_data["ferry_name"].str.lower() == ferry) & (
+                ferry_trip_data["time_departure"] == departure_time
+            )
+            ferry_trip_data.loc[row_mask, "fuelcons_outbound_l"] = fuelcons_outbound_l
+            ferry_trip_data.loc[row_mask, "distance_outbound_nm"] = distance_outbound_nm
+            ferry_trip_data.loc[row_mask, "start_time_outbound"] = start_time_outbound
+            ferry_trip_data.loc[row_mask, "end_time_outbound"] = end_time_outbound
+
+            ferry_trip_data.loc[row_mask, "fuelcons_inbound_l"] = fuelcons_inbound_l
+            ferry_trip_data.loc[row_mask, "distance_inbound_nm"] = distance_inbound_nm
+            ferry_trip_data.loc[row_mask, "start_time_inbound"] = start_time_inbound
+            ferry_trip_data.loc[row_mask, "end_time_inbound"] = end_time_inbound
+
+ferry_trip_data.to_csv("extended_ferry_tips.csv", index=False)
