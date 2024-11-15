@@ -1,1 +1,0 @@
-- Check UTC vs Swedish time!!!
