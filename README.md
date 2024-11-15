@@ -71,7 +71,7 @@ Original fields:
   - `doubtful` – An "ordinary" trip that does not match the timetable.
   - `extra` – An extra trip by an additional ferry that does not follow the timetable.
   - `proactive` – A trip made before the ordinary trip to stay ahead, comparable to an extra trip.
-  - `doubling` – An extra trip beetween two regular trips to take car of vehicles left behind in the termial.
+  - `doubling` – An extra trip between two regular trips to take car of vehicles left behind in the termial.
 - `tailored_trip`: A special trip for vehicles with dangerous cargo. (1: True, 0: False).
 
 Additional fields calculated with data from PONTOS-HUB (might not always contain values depending on data availability):
