@@ -35,7 +35,7 @@ PONTOS_TOKEN=<Your PONTOS access token>
 
 This file is read by `utils.py` when loaded so that the requests to PONTOS-HUB are authorized.
 
-5. Create a virtual environment (e.g. using `pyenv`or `conda`).
+5. Create a virtual environment (e.g. using `venv`or `conda`).
 
 6. Install all the dependencies `pip install -r requirements.txt`.
 
