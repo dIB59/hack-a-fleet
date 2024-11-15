@@ -35,8 +35,8 @@ ferry_trip_data["end_time_inbound"] = None
 
 
 # Time bucket
-time_bucket = "30 seconds"  # Used to fetch data from PONTOS-HUB
-time_bucket_s = 30  # Used to calculate fuel consumption
+time_bucket = "5 seconds"  # Used to fetch data from PONTOS-HUB
+time_bucket_s = 5  # Used to calculate fuel consumption
 
 # Loop through all the ferries
 for ferry in tqdm(ferries, desc="Processing ferries"):
@@ -66,6 +66,7 @@ for ferry in tqdm(ferries, desc="Processing ferries"):
             ferries_data[ferry]["pontos_vessel_id"],
             str(start_of_day),
             str(end_of_day),
+            parameter_ids=["latitude", "longitude", "sog", "fuelcons_lph"],
             time_bucket=time_bucket,
         )
 

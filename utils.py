@@ -6,6 +6,7 @@ import requests
 from datetime import datetime
 
 from dotenv import load_dotenv
+import time
 
 # Load environment variables from .env file
 load_dotenv()
@@ -79,9 +80,13 @@ def fetch_vessel_data(
 
     # Make the API request
     url = f"https://pontos.ri.se/api/{api_view}?{query}"
-    response = requests.get(url, headers={"Authorization": f"Bearer {PONTOS_TOKEN}"})
+    headers = {"Authorization": f"Bearer {PONTOS_TOKEN}"}
+    response = requests.get(url, headers=headers)
     if response.status_code == 200:
-        return response.json()
+        try:
+            return response.json()
+        except:
+            raise Exception("Failed to parse JSON response:", response.text, url)
     else:
         raise Exception(
             "Failed to retrieve data:", response.status_code, response.text, url
