@@ -1,17 +1,24 @@
 import os
 import math
-import pandas as pd
-import numpy as np
-import requests
 from datetime import datetime
 
+import pandas as pd
+import requests
+import numpy as np
 from dotenv import load_dotenv
-import time
+import pydeck as pdk
+from pydeck.data_utils import compute_view
+from sklearn.cluster import DBSCAN, KMeans, AgglomerativeClustering
+from typing import List, Tuple
+
 
 # Load environment variables from .env file
 load_dotenv()
 
 PONTOS_TOKEN = os.getenv("PONTOS_TOKEN")
+
+R = 6371000  # Earth's radius in meters
+
 
 if not PONTOS_TOKEN:
     raise Exception("PONTOS_TOKEN not found in environment variables")
@@ -21,7 +28,8 @@ def fetch_vessel_data(
     vessel_id, start_time, end_time, parameter_ids=["*"], time_bucket=None
 ):
     """
-    Fetches vessel data from the PONTOS-hub API within a specified time range and for specified parameters.
+    Fetches historical vessel data from PONTOS-HUB through the REST API.
+    Requires a specified time range and for specified parameters.
 
     Args:
         vessel_id (str): The unique identifier of the vessel.
@@ -141,7 +149,7 @@ def get_trips_from_vessel_data(
     Args:
         vessel_data (list): A list of dictionaries containing vessel data points.
         speed_threshold_kn (float, optional): The speed threshold in knots below which data points are considered stops. Defaults to 1.0 kn.
-        stop_time_threshold_min (float, optional): The time threshold in minutes to consider a stop between trips. Defaults to 1.0 miinute.
+        stop_time_threshold_min (float, optional): The time threshold in minutes to consider a stop between trips. Defaults to 1.0 minute.
         lat (str, optional): The key for latitude in the vessel data. Defaults to "positioningsystem_latitude_deg_1".
         lon (str, optional): The key for longitude in the vessel data. Defaults to "positioningsystem_longitude_deg_1".
         sog (str, optional): The key for speed over ground in the vessel data. Defaults to "positioningsystem_sog_kn_1".
@@ -188,6 +196,87 @@ def get_trips_from_vessel_data(
     return trips
 
 
+CLUSTER_COLORS = [
+    (31, 119, 180),
+    (255, 127, 14),
+    (44, 160, 44),
+    (214, 39, 40),
+    (148, 103, 189),
+    (140, 86, 75),
+    (227, 119, 194),
+    (127, 127, 127),
+    (188, 189, 34),
+    (23, 190, 207),
+    (230, 25, 75),
+    (60, 180, 75),
+    (245, 130, 49),
+    (145, 30, 180),
+    (70, 240, 240),
+    (240, 50, 230),
+    (188, 246, 12),
+    (250, 190, 190),
+    (0, 128, 128),
+    (230, 190, 255),
+    (154, 99, 36),
+    (255, 250, 200),
+    (128, 0, 0),
+    (170, 255, 195),
+    (128, 128, 0),
+    (255, 216, 177),
+    (0, 0, 128),
+    (169, 169, 169),
+    (255, 255, 255),
+    (0, 0, 0),
+]
+
+
+def get_cluster_colors(labels):
+    return [
+        CLUSTER_COLORS[label] if label != -1 else [255.0, 255.0, 255.0]
+        for label in labels
+    ]
+
+
+def flip_coordinates_order(path):
+    """Flip the order of the coordinates in a path"""
+    return [(p[1], p[0]) for p in path]
+
+
+def make_paths_layer(paths, colors=None, opacity=0.95):
+    if colors is None:
+        colors = [CLUSTER_COLORS[i % len(CLUSTER_COLORS)] for i in range(len(paths))]
+    paths_pdk = [
+        {"path": flip_coordinates_order(path), "color": color}
+        for path, color in zip(paths, colors)
+    ]
+    return pdk.Layer(
+        "PathLayer",
+        paths_pdk,
+        get_color="color",
+        opacity=opacity,
+        width_min_pixels=5,
+        rounded=True,
+    )
+
+
+def plot_paths(paths, colors=None):
+    """
+    Plots a series of paths on a map using the pydeck library.
+
+    Args:
+        paths (list of list of tuples): A list of paths, where each path is a list of (latitude, longitude) tuples.
+        colors (list of tuples, optional): A list of RGB color tuples corresponding to each path. Defaults to None.
+
+    Returns:
+        pydeck.Deck: A pydeck Deck object representing the plotted paths.
+    """
+    layer = make_paths_layer(paths, colors=colors)
+    points = [point for path in paths for point in flip_coordinates_order(path)]
+    view_state = compute_view(points)
+    r = pdk.Deck(layers=[layer], initial_view_state=view_state)
+    return r
+
+
 def haversine(point_1, point_2):
     """
     Calculate the great-circle distance between two points on the Earth using the Haversine formula.
@@ -199,9 +288,6 @@ def haversine(point_1, point_2):
     Returns:
         float: The great-circle distance between the two points in meters
     """
-
-    R = 6371000  # Earth's radius in meters
-
     lat1, lon1 = point_1
     lat2, lon2 = point_2
 
@@ -219,3 +305,252 @@ def haversine(point_1, point_2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
     return R * c
+
+
+def bearing(point_1, point_2):
+    """
+    Calculate the initial bearing from one point to another on the Earth's surface.
+
+    Parameters:
+    point_1 (tuple): A tuple containing the latitude and longitude of the first point (in decimal degrees)
+    point_2 (tuple): A tuple containing the latitude and longitude of the second point (in decimal degrees)
+
+    Returns:
+    float: The initial bearing from the first point to the second point in degrees (0-360)
+    """
+    lat1, lon1 = point_1
+    lat2, lon2 = point_2
+
+    lat1_rad = math.radians(lat1)
+    lon1_rad = math.radians(lon1)
+    lat2_rad = math.radians(lat2)
+    lon2_rad = math.radians(lon2)
+
+    dlon = lon2_rad - lon1_rad
+    y = math.sin(dlon) * math.cos(lat2_rad)
+    x = math.cos(lat1_rad) * math.sin(lat2_rad) - math.sin(lat1_rad) * math.cos(
+        lat2_rad
+    ) * math.cos(dlon)
+
+    initial_bearing_rad = math.atan2(y, x)
+
+    # Convert radians to degrees and normalize the result to the range [0, 360)
+    initial_bearing_deg = (math.degrees(initial_bearing_rad) + 360) % 360
+
+    return initial_bearing_deg
+
+
+def cross_track_distance(start_point, end_point, point):
+    """
+    Calculate the cross-track distance between a point and a rhumb line on the surface of the Earth.
+
+    Parameters:
+    start_point (tuple): A tuple containing the latitude and longitude of the starting point of the rhumb line (in decimal degrees)
+    end_point (tuple): A tuple containing the latitude and longitude of the ending point of the rhumb line (in decimal degrees)
+    point (tuple): A tuple containing the latitude and longitude of the point to calculate cross-track distance for (in decimal degrees)
+
+    Returns:
+    float: The cross-track distance between the point and the rhumb line in kilometers
+    """
+
+    d13 = haversine(start_point, point) / R
+    bearing13 = math.radians(bearing(start_point, end_point))
+    bearing12 = math.radians(bearing(start_point, point))
+
+    return math.asin(math.sin(d13) * math.sin(bearing13 - bearing12)) * R
+
+
+def douglas_peucker(path, epsilon):
+    """
+    Simplify a path using the Douglas-Peucker algorithm with cross-track distance.
+
+    Parameters:
+    path (list): A list of tuples containing the latitude and longitude of the path in the trajectory (in decimal degrees)
+    epsilon (float): The tolerance value used to determine if a point should be kept in the simplified trajectory (in meters)
+
+    Returns:
+    list: A list of tuples containing the simplified trajectory path
+    """
+    dist_max = 0
+    index = 0
+    for i in range(1, len(path) - 1):
+        dist = abs(cross_track_distance(path[0], path[-1], path[i]))
+        if dist > dist_max:
+            index = i
+            dist_max = dist
+
+    if dist_max > epsilon:
+        rec_results_1 = douglas_peucker(path[: index + 1], epsilon)
+        rec_results_2 = douglas_peucker(path[index:], epsilon)
+        results = rec_results_1[:-1] + rec_results_2
+    else:
+        results = [path[0], path[-1]]
+    return results
+
+
+def frechet_distance(path_1, path_2):
+    """
+    Calculate the discrete Fréchet distance between two paths using cross-track distance.
+
+    Parameters:
+    path_1 (list): A list of tuples containing the latitude and longitude of the points in the first path (in decimal degrees)
+    path_2 (list): A list of tuples containing the latitude and longitude of the points in the second path (in decimal degrees)
+
+    Returns:
+    float: The discrete Fréchet distance between the two paths
+    """
+    len_path_1 = len(path_1)
+    len_path_2 = len(path_2)
+
+    if len_path_1 == 0 or len_path_2 == 0:
+        raise ValueError("Paths must not be empty")
+
+    memo = np.full((len_path_1, len_path_2), -1.0)
+
+    def recursive_frechet(i, j):
+        if memo[i][j] != -1.0:
+            return memo[i][j]
+
+        if i == 0 and j == 0:
+            memo[i][j] = haversine(path_1[0], path_2[0])
+        elif i > 0 and j == 0:
+            memo[i][j] = max(
+                recursive_frechet(i - 1, 0), haversine(path_1[i], path_2[0])
+            )
+        elif i == 0 and j > 0:
+            memo[i][j] = max(
+                recursive_frechet(0, j - 1), haversine(path_1[0], path_2[j])
+            )
+        elif i > 0 and j > 0:
+            memo[i][j] = max(
+                min(
+                    recursive_frechet(i - 1, j),
+                    recursive_frechet(i - 1, j - 1),
+                    recursive_frechet(i, j - 1),
+                ),
+                haversine(path_1[i], path_2[j]),
+            )
+        else:
+            memo[i][j] = float("inf")
+        return memo[i][j]
+
+    return recursive_frechet(len_path_1 - 1, len_path_2 - 1)
+
+
+def cluster_paths(
+    paths: List[List[Tuple[float, float]]],
+    alpha: float = 0.3,
+    eps: float = 100,
+    min_samples: int = 2,
+    epsilon: float = 10,
+) -> List[int]:
+    """
+    Cluster paths based on their Fréchet distance and direction similarity.
+
+    Arguments:
+        paths: A list of paths, where each path is a list of (x, y) coordinate tuples.
+        alpha: The weight of the angular difference in the distance calculation, ranging from 0 to 1.
+        eps: The maximum distance between two samples for them to be considered as in the same cluster.
+        min_samples: The number of samples in a neighborhood for a point to be considered as a core point.
+        epsilon: The threshold cross-track distance used to determine if a point should be kept in path simplification step (Douglas-Peucker algorithm).
+
+    Returns:
+        A list of cluster labels for each path. Noise points are given the label -1.
+    """
+
+    # Simplify the paths
+    simplified_paths = [douglas_peucker(path, epsilon) for path in paths]
+
+    # Compute path directions
+    path_directions = [
+        np.arctan2(path[-1][1] - path[0][1], path[-1][0] - path[0][0])
+        for path in simplified_paths
+    ]
+
+    # Compute pairwise distances between all pairs of trajectories using the Fréchet distance
+    distance_matrix = np.zeros([len(simplified_paths), len(simplified_paths)])
+    for i, i_path in enumerate(simplified_paths):
+        for j, j_path in enumerate(simplified_paths):
+            if i == j:
+                distance_matrix[i, j] = 0
+            else:
+                fr_dist = frechet_distance(i_path, j_path)
+                angular_diff = angular_diff = np.abs(
+                    path_directions[i] - path_directions[j]
+                )
+                distance_matrix[i, j] = (1 - alpha) * fr_dist + alpha * angular_diff
+
+    # Apply DBSCAN clustering to group similar trajectories together
+    clustering = DBSCAN(eps=eps, min_samples=min_samples, metric="precomputed")
+    labels = clustering.fit_predict(distance_matrix)
+
+    return labels
+
+
+def generate_representative_path(
+    paths: List[List[Tuple[float, float]]], epsilon: float = 10
+) -> List[Tuple[float, float]]:
+    """Generate representative path
+
+    Generates a path representative of a group of similar paths by
+    simplyfing each of the given paths then clustering the points
+    of the simplified paths. The simplification is done with the
+    Douglas-Peucker algorithm and the clustering with Agglomerative
+    Clustering.
+
+    Arguments:
+    ----------
+
+        paths: list
+            List of similar paths where a path is list of (lat, lon) tuples.
+
+        epsilon: float
+            The threshold cross-track distance used to determine if
+            a point should be kept in path simplification step
+            (Douglas-Peucker algorithm).
+
+    Returns:
+    --------
+
+        list
+            The representative path as a list of (lat, lon) tuples.
+
+    """
+    # Find the representative waypoints.
+    s_paths = [douglas_peucker(path, epsilon) for path in paths]
+    n_waypoints = (
+        int(np.ceil(sum([len(s_path) for s_path in s_paths]) / len(s_paths))) + 1
+    )
+    agglomerative_clustering = AgglomerativeClustering(n_clusters=n_waypoints)
+
+    # Add the index as a third element in the input points for the Agglomerative Clustering algorithm
+    points = np.array(
+        [
+            (point[0], point[1], index)
+            for sublist in s_paths
+            for index, point in enumerate(sublist)
+        ]
+    )
+    points_np = np.array(points)[
+        :, :2
+    ]  # Exclude the index from the numpy array for clustering
+    agglomerative_clustering.fit(points_np)
+
+    # Calculate cluster centers
+    cluster_centers = []
+    ref = np.array([(p[0], p[1]) for p in paths[0]])
+    for cluster_id in np.unique(agglomerative_clustering.labels_):
+        cluster_points = points[agglomerative_clustering.labels_ == cluster_id]
+        cluster_center = cluster_points[:, :2].mean(axis=0)
+        closest_point_idx = np.argmin(np.linalg.norm(ref - cluster_center, axis=1))
+        cluster_centers.append(
+            (cluster_center[0], cluster_center[1], closest_point_idx)
+        )
+
+    # Sort the cluster centers based on the third element (the index)
+    ordered_cluster_centers = sorted(cluster_centers, key=lambda x: x[2])
+
+    # Remove the index from the final output
+    ordered_cluster_centers = [(p[0], p[1]) for p in ordered_cluster_centers]
+
+    return ordered_cluster_centers
