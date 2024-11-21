@@ -51,7 +51,8 @@ def get_average(file_path: str, trip_types: List[str]):
     for chunk in pd.read_csv(file_path, chunksize=chunk_size):
         chunk['trip_type'] = chunk['trip_type'].str.strip()
         filtered_trips = chunk[chunk['trip_type'].isin(trip_types)]
-        grouped = filtered_trips.groupby('ferry_name')['passenger_car_equivalent_outbound_and_inbound'].agg(['sum', 'count'])
+        grouped = filtered_trips.groupby('ferry_name')['passenger_car_equivalent_outbound_and_inbound'].agg(
+            ['sum', 'count'])
         # Update the accumulated sums and counts for each ferry
         for ferry_name, values in grouped.iterrows():
 
@@ -61,15 +62,14 @@ def get_average(file_path: str, trip_types: List[str]):
             else:
                 ferry_sums[ferry_name] = values['sum']
                 ferry_counts[ferry_name] = values['count']
-    return ferry_sums, ferry_counts
+
+    ans = []
+    for n in ferry_sums:
+        average = round(ferry_sums[n] / ferry_counts[n], 2)
+        ans.append((n, average))
+
+    return ans
 
 
-sums, counts = get_average("ferry_tips_data.csv", ['ordinary', 'extra', 'doubtful', 'proactive', 'doubling', 'extra'])
-
-# Print the header
-print(f"{'Ferry Name':<15} {'Average Passenger Car Equivalent':>30}")
-
-# Print the averages for each ferry in a well-formatted way
-for name in sums:
-    avg = round(sums[name] / counts[name], 2)
-    print(f"{name:<15} {avg:>30}")
+anser = get_average("ferry_tips_data.csv", ['ordinary', 'extra', 'doubtful', 'proactive', 'doubling', 'extra'])
+print(anser)
