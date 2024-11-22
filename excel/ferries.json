@@ -1,0 +1,89 @@
+{
+  "fragancia": {
+    "pontos_vessel_id": "mmsi_265558290",
+    "length_m": 74.2,
+    "breadth_m": 11.7,
+    "draft_m": 3.5,
+    "max_speed_kn": 9,
+    "installed_power_kw": 882
+  },
+  "jupiter": {
+    "pontos_vessel_id": "mmsi_265585310",
+    "length_m": 86.2,
+    "breadth_m": 14.0,
+    "draft_m": 3.3,
+    "max_speed_kn": 12,
+    "installed_power_kw": 1324
+  },
+  "merkurius": {
+    "pontos_vessel_id": "mmsi_265546940",
+    "length_m": 83.0,
+    "breadth_m": 13.8,
+    "draft_m": 3.6,
+    "max_speed_kn": 11,
+    "installed_power_kw": 1470
+  },
+  "nina": {
+    "pontos_vessel_id": "mmsi_265589970",
+    "length_m": 76.0,
+    "breadth_m": 13.9,
+    "draft_m": 3.5,
+    "max_speed_kn": 10,
+    "installed_power_kw": 958
+  },
+  "yxlan": {
+    "pontos_vessel_id": "imo_8804440",
+    "length_m": 76.5,
+    "breadth_m": 12.4,
+    "draft_m": 3.6,
+    "max_speed_kn": 11,
+    "installed_power_kw": 1324
+  },
+  "skidbladner": {
+    "pontos_vessel_id": "name_skidbladner",
+    "length_m": 48.0,
+    "breadth_m": 11.7,
+    "draft_m": 3.0,
+    "max_speed_kn": 9
+  },
+  "marie": {
+    "pontos_vessel_id": "imo_8612055",
+    "length_m": 78.0,
+    "breadth_m": 15.0,
+    "draft_m": 3.2,
+    "max_speed_kn": 11,
+    "installed_power_kw": 1456
+  },
+  "capella": {
+    "pontos_vessel_id": "imo_7943354",
+    "length_m": 33.3,
+    "breadth_m": 6.66,
+    "draft_m": 2.45,
+    "max_speed_kn": 9,
+    "installed_power_kw": 690
+  },
+  "linda": {
+    "pontos_vessel_id": "imo_7522148",
+    "length_m": 40.7,
+    "breadth_m": 9.15,
+    "draft_m": 3.15,
+    "max_speed_kn": 8,
+    "installed_power_kw": 1100
+  },
+  "sedna": {
+    "pontos_vessel_id": "name_sedna",
+    "length_m": 44.3,
+    "breadth_m": 7.2,
+    "draft_m": 2.5,
+    "max_speed_kn": 10,
+    "installed_power_kw": 662
+  },
+  "ebba_brahe": {
+    "pontos_vessel_id": "imo_8816900",
+    "length_m": 41.0,
+    "breadth_m": 11.2,
+    "draft_m": 3.25,
+    "max_speed_kn": 10,
+    "installed_power_kw": 1176
+  }
+}
