@@ -1,4 +1,3 @@
-import csv
 from typing import List
 
 import pandas as pd
@@ -45,13 +44,16 @@ end_time_inbound = 39
 chunk_size = 1000
 
 
-def get_average(file_path: str, trip_types: List[str]):
+def get_average(file_path: str, aggregate_header: str,
+                filter_header: str = 'trip_type',
+                filter_allow: List[str] = ('ordinary', 'extra')
+                ):
     ferry_sums = {}
     ferry_counts = {}
     for chunk in pd.read_csv(file_path, chunksize=chunk_size):
-        chunk['trip_type'] = chunk['trip_type'].str.strip()
-        filtered_trips = chunk[chunk['trip_type'].isin(trip_types)]
-        grouped = filtered_trips.groupby('ferry_name')['passenger_car_equivalent_outbound_and_inbound'].agg(
+        chunk[('%s' % filter_header)] = chunk[filter_header].str.strip()
+        filtered_trips = chunk[chunk[filter_header].isin(filter_allow)]
+        grouped = filtered_trips.groupby('ferry_name')[('%s' % aggregate_header)].agg(
             ['sum', 'count'])
         # Update the accumulated sums and counts for each ferry
         for ferry_name, values in grouped.iterrows():
@@ -71,5 +73,10 @@ def get_average(file_path: str, trip_types: List[str]):
     return ans
 
 
-anser = get_average("ferry_tips_data.csv", ['ordinary', 'extra', 'doubtful', 'proactive', 'doubling', 'extra'])
-print(anser)
+if __name__ == "__main__":
+    answer = get_average("ferry_tips_data.csv",
+                         'passenger_car_equivalent_outbound_and_inbound',
+                         'trip_type',
+                         ['ordinary', 'extra', 'doubtful', 'proactive', 'doubling', 'extra'],
+                         )
+    print(answer)
