@@ -16,6 +16,8 @@ The real-world dataset is `ferry_trips_data.csv`. Use this data as a start point
 
 - `ferries.json`: A JSON file containing information of the ferries owned by Färjerederiet that share their data to PONTOS-HUB. The `pontos_vessel_id` key-value pair can be use for querying the REST-API of PONTOS-HUB.
 - `ferry_trips_data.csv`: A CSV file containing records of trips made by 5 ferries owned by Färjerederiet. See the section "Ferry trips" below for more information about the contents.
+- `ferry_route_descriptions.md`: Descriptions of the ferry routes in the file `ferry_trips_data.csv`.
+- `schedures/*.pdf`: Schedules for the ferry routes.
 - `utils.py`: A Python module containing utility functions to fetch vessel data from PONTOS-HUB, manipulate it, and visualize it.
 - `examples.ipynb`: A Jupyter notebook containing examples of the useage of the functions in `utils.py`.
 - `excel/ferry_trips.xlsx`: An Excel file containing records of trips made by 5 ferries owned by Färjerederiet. Used as an input for the script `exel/extend_ferrytrips.py`.
@@ -73,6 +75,12 @@ Original fields:
   - `proactive` – A trip made before the ordinary trip to stay ahead, comparable to an extra trip.
   - `doubling` – An extra trip between two regular trips to take car of vehicles left behind in the termial.
 - `tailored_trip`: A special trip for vehicles with dangerous cargo. (1: True, 0: False).
+- `passenger_car_equivalent_outbound/inbound`: The total number of vehicles in a outbound/inbound trip as Passenger Car Equivalent (PCE) according to the following conversion rules:
+  - Length 0-6 meters (e.g. car): 1 PCE
+  - Length 6-12 meters (e.g. lorry or car with trailer): 2.5 PCE
+  - Length 15-24 meters (e.g. lorry with trailer): 4.5 PCE
+  - Bus: 9 PCE
+  - Other large vehicles (e.g. cranes, haversters): 9 PCE
 
 Additional fields calculated with data from PONTOS-HUB (might not always contain values depending on data availability):
 
