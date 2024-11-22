@@ -31,8 +31,9 @@ def plot_traffic_heatmap_by_route(route_id, traffic_cols: List[str] = None, lege
     # Convert time_departure to datetime
     df['time_departure'] = pd.to_datetime(df['time_departure'])
 
-    # Extract week, weekday
+    # Extract week number
     df['week'] = df['time_departure'].dt.isocalendar().week  # Week number in the year
+
     df['weekday'] = df['time_departure'].dt.day_name()  # Day of the week
 
     # Calculate total traffic
@@ -50,6 +51,11 @@ def plot_traffic_heatmap_by_route(route_id, traffic_cols: List[str] = None, lege
 
     # Reorder days of the week
     ordered_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    week_order = [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
+                  28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46,
+                  47, 48, 49, 50, 51, 52, 1, 2, 3, 4, 5, 6, 7, 8]
+
+
 
     # Create a heatmap with weeks on the y-axis and days of the week on the x-axis
     heatmap_data = grouped_data.pivot_table(
@@ -57,10 +63,10 @@ def plot_traffic_heatmap_by_route(route_id, traffic_cols: List[str] = None, lege
         index='week',  # Week number on the y-axis
         columns='weekday',  # Day of the week on the x-axis
         aggfunc='sum',
-        fill_value=0
     ).reindex(columns=ordered_days)
+    heatmap_data = heatmap_data.reindex(index=week_order)
 
-    median_value = np.median(heatmap_data.values)
+    median_value = np.nanmedian(heatmap_data.values)
     plt.figure(figsize=(14, 20))
     sns.heatmap(
         heatmap_data,
@@ -72,7 +78,8 @@ def plot_traffic_heatmap_by_route(route_id, traffic_cols: List[str] = None, lege
         vmax=global_max,  # Set color scale maximum
         cbar_kws={'label': 'Total Traffic'},  # Color bar label
         annot_kws={"size": 10},
-        center=median_value
+        center=median_value,
+        mask=heatmap_data.isna()
     )
 
     # Improve title and axis labels
