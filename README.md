@@ -75,6 +75,12 @@ Original fields:
   - `proactive` – A trip made before the ordinary trip to stay ahead, comparable to an extra trip.
   - `doubling` – An extra trip between two regular trips to take car of vehicles left behind in the termial.
 - `tailored_trip`: A special trip for vehicles with dangerous cargo. (1: True, 0: False).
+- `passenger_car_equivalent_outbound/inbound`: The total number of vehicles in a outbound/inbound trip as Passenger Car Equivalent (PCE) according to the following conversion rules:
+  - Length 0-6 meters (e.g. car): 1 PCE
+  - Length 6-12 meters (e.g. lorry or car with trailer): 2.5 PCE
+  - Length 15-24 meters (e.g. lorry with trailer): 4.5 PCE
+  - Bus: 9 PCE
+  - Other large vehicles (e.g. cranes, haversters): 9 PCE
 
 Additional fields calculated with data from PONTOS-HUB (might not always contain values depending on data availability):
 
