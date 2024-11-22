@@ -55,8 +55,6 @@ def plot_traffic_heatmap_by_route(route_id, traffic_cols: List[str] = None, lege
                   28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46,
                   47, 48, 49, 50, 51, 52, 1, 2, 3, 4, 5, 6, 7, 8]
 
-
-
     # Create a heatmap with weeks on the y-axis and days of the week on the x-axis
     heatmap_data = grouped_data.pivot_table(
         values='total_traffic',
